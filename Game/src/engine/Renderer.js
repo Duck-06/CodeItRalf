@@ -32,13 +32,9 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.width, this.height);
   }
 
-  /**
-   * Draws the background image using 'cover' fit (preserves aspect ratio)
-   */
   drawBackground() {
     const bg = this.images.background;
     if (bg.complete && bg.naturalWidth !== 0) {
-      // Calculate 'cover' dimensions
       const bgRatio = bg.naturalWidth / bg.naturalHeight;
       const canvasRatio = this.width / this.height;
       
@@ -58,7 +54,6 @@ export class Renderer {
 
       this.ctx.drawImage(bg, offsetX, offsetY, renderW, renderH);
     } else {
-      // Fallback
       this.ctx.fillStyle = '#1a1a1a';
       this.ctx.fillRect(0, 0, this.width, this.height);
     }
@@ -75,12 +70,12 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  drawPlayer(player, isControlled) {
+  drawPlayer(player, isControlled, assignedColor) {
     this.ctx.save();
     
-    // Identify Sprite
-    const isPlayer1 = player.color === '#ff6b6b';
-    const sprite = isPlayer1 ? this.images.player1 : this.images.player2;
+    // Identify Sprite based on assigned color (ControlSetA = Red, ControlSetB = Cyan)
+    const isPlayer1Visually = assignedColor === '#ff6b6b';
+    const sprite = isPlayer1Visually ? this.images.player1 : this.images.player2;
 
     // Position Calculations
     const x = player.position.x;
@@ -94,47 +89,32 @@ export class Renderer {
     // Glow Effect
     if (isControlled) {
       this.ctx.shadowBlur = 20;
-      this.ctx.shadowColor = isPlayer1 ? '#ff4757' : '#2ed573';
+      this.ctx.shadowColor = assignedColor === '#ff6b6b' ? '#ff4757' : '#2ed573';
     }
 
     // Sprite Rendering
     if (sprite && sprite.complete && sprite.naturalWidth !== 0) {
-        
-        // Setup Flip
         const flip = !player.facingRight;
         
-        // Anchor at bottom-center of hitbox
         this.ctx.translate(x + w / 2, y + h);
         this.ctx.scale(flip ? -1 : 1, 1);
 
-        // Calculate aspect ratio scale to fit height
-        // We want the character to be roughly aligned with the 50x80 hitbox
-        // Usually art has some padding, so we might draw it slightly larger (e.g. 1.5x)
-        // But the user asked to "keep the size appropriate".
-        // Let's match the height of the hitbox + ~20% for visual flair.
-        
-        // Note: kungfu.png and tailung.png dimensions are unknown but likely larger than 80px.
-        // We will fit-height.
-        
         const sW = sprite.naturalWidth;
         const sH = sprite.naturalHeight;
         
-        // Target Height: 100px (hitbox 80 + a bit)
-        const targetH = 110;
+        // Target Height: 110 (hitbox) + 15 cushion
+        const targetH = 125;
         const scale = targetH / sH;
         const renderW = sW * scale;
         const renderH = sH * scale;
 
-        // Draw centered
         this.ctx.drawImage(sprite, -renderW / 2, -renderH + 7, renderW, renderH); 
-        // +7 offset to align feet with shadow slightly better
-
     } else {
         // Fallback Rectangle
         if (player.hitFlashTimer > 0) {
             this.ctx.fillStyle = '#ff0000';
         } else {
-            this.ctx.fillStyle = player.color;
+            this.ctx.fillStyle = assignedColor;
         }
         this.ctx.fillRect(x, y, w, h);
     }
@@ -142,14 +122,13 @@ export class Renderer {
     this.ctx.shadowBlur = 0;
     this.ctx.restore();
     
-    // Controlled Indicator (Triangle)
+    // Controlled Indicator
     if (isControlled) {
       this.ctx.save();
       this.ctx.fillStyle = '#ffec00';
       this.ctx.strokeStyle = '#000';
       this.ctx.lineWidth = 1;
       this.ctx.beginPath();
-      // Triangle above head
       const cx = x + w / 2;
       const cy = y - 20;
       this.ctx.moveTo(cx, cy);
@@ -162,10 +141,10 @@ export class Renderer {
     }
   }
 
-  drawUI(game) {
+  drawUI(game, p1Color, p2Color) {
     // Health Bars
-    this.drawHealthBar(game.player1, 50, 50, 'PLAYER 1');
-    this.drawHealthBar(game.player2, this.width - 250, 50, 'PLAYER 2');
+    this.drawHealthBar(game.player1, 50, 50, 'PLAYER 1', p1Color);
+    this.drawHealthBar(game.player2, this.width - 250, 50, 'PLAYER 2', p2Color);
 
     // Timer
     if (!game.gameOver) {
@@ -186,11 +165,10 @@ export class Renderer {
     }
   }
 
-  drawHealthBar(player, x, y, label) {
+  drawHealthBar(player, x, y, label, color) {
     const barWidth = 200;
     const barHeight = 25;
 
-    // Shake
     let offX = 0, offY = 0;
     if (player.healthBarShake > 0) {
       offX = (Math.random() - 0.5) * 6;
@@ -200,19 +178,15 @@ export class Renderer {
     const dx = x + offX;
     const dy = y + offY;
 
-    // Container
     this.ctx.fillStyle = 'rgba(0,0,0,0.5)';
     this.ctx.fillRect(dx-2, dy-2, barWidth+4, barHeight+4);
 
-    // Bar
     const pct = Math.max(0, player.health / player.maxHealth);
     const w = barWidth * pct;
 
-    // Color based on player
-    this.ctx.fillStyle = (player.color === '#ff6b6b') ? '#ff4757' : '#2ed573';
+    this.ctx.fillStyle = (color === '#ff6b6b') ? '#ff4757' : '#2ed573';
     this.ctx.fillRect(dx, dy, w, barHeight);
 
-    // Text
     this.ctx.fillStyle = '#fff';
     this.ctx.font = 'bold 16px "Segoe UI", sans-serif';
     this.ctx.textAlign = 'left';
@@ -237,7 +211,6 @@ export class Renderer {
   drawSwitchAlert() {
     this.ctx.save();
     this.ctx.translate(this.width/2, this.height/2);
-    // Pulse effect
     const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
     this.ctx.scale(scale, scale);
     
@@ -274,8 +247,8 @@ export class Renderer {
     this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
     this.ctx.font = '14px "Segoe UI", sans-serif';
     this.ctx.textAlign = 'left';
-    this.ctx.fillText('P1: A/D Move, W Jump, E Attack', 20, this.height - 40);
-    this.ctx.fillText('P2: J/L Move, I Jump, O Attack', 20, this.height - 20);
+    this.ctx.fillText('P1: A/D Move, W Jump, E Attack to use Kung Fu (Red)', 20, this.height - 40);
+    this.ctx.fillText('P2: J/L Move, I Jump, O Attack to use Tai Lung (Cyan)', 20, this.height - 20);
   }
 
   // Helper method to draw the scene
@@ -286,11 +259,19 @@ export class Renderer {
     const controlled1 = game.controllingPlayer1 ? game.player1 : game.player2;
     const controlled2 = game.controllingPlayer1 ? game.player2 : game.player1;
 
+    // Dynamic Color Determination
+    // If P1 controls P1: P1 is Red, P2 is Cyan
+    // If P1 controls P2: P2 is Red, P1 is Cyan
+    // Therefore: The entity being controlled by Player 1 (Control Set A) is ALWAYS Red
+    
+    const p1Color = game.controllingPlayer1 ? '#ff6b6b' : '#4ecdc4'; // Player 1's entity color
+    const p2Color = game.controllingPlayer1 ? '#4ecdc4' : '#ff6b6b'; // Player 2's entity color
+
     // Draw Players
-    this.drawPlayer(game.player1, game.player1 === controlled1 || game.player1 === controlled2);
-    this.drawPlayer(game.player2, game.player2 === controlled1 || game.player2 === controlled2);
+    this.drawPlayer(game.player1, game.player1 === controlled1 || game.player1 === controlled2, p1Color);
+    this.drawPlayer(game.player2, game.player2 === controlled1 || game.player2 === controlled2, p2Color);
 
     // Draw UI
-    this.drawUI(game);
+    this.drawUI(game, p1Color, p2Color);
   }
 }

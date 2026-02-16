@@ -4,8 +4,8 @@ export class Player {
   constructor(x, y, color, controls) {
     this.position = new Vector2(x, y);
     this.velocity = new Vector2(0, 0);
-    this.width = 70;  // Increased from 50
-    this.height = 120; // Increased from 80
+    this.width = 60;
+    this.height = 110;
     this.color = color;
     this.controls = controls;
     
