@@ -4,10 +4,18 @@ export class Player {
   constructor(x, y, color, controls) {
     this.position = new Vector2(x, y);
     this.velocity = new Vector2(0, 0);
-    this.width = 60;
-    this.height = 110;
+    // Physics Hitbox (Scanning/Collision)
+    this.width = 115;   // Slightly wider to match larger visual
+    this.height = 150;  // Shorter to allow jumping over
+    
+    // Visual Dimensions (Rendering)
+    this.visualHeight = 420; // Increased from 360 to make characters bigger
+    
     this.color = color;
     this.controls = controls;
+    
+    // Audio Manager (will be set by Game)
+    this.audioManager = null;
     
     // Combat
     this.health = 15;
@@ -23,10 +31,10 @@ export class Player {
     this.healthBarShake = 0;
     
     // Movement settings
-    this.moveSpeed = 6;     // Max speed
+    this.moveSpeed = 4.9;   // Slower movement (was 6)
     this.acceleration = 1.5; // High acceleration for responsiveness
     this.friction = 0.8;    // Strong friction for quick stops
-    this.jumpPower = 22;
+    this.jumpPower = 24;    // Higher jump (was 22)
     this.dodgeSpeed = 12;
     this.airControl = 0.7; 
     
@@ -136,15 +144,25 @@ export class Player {
     this.attackDuration = 150; 
     this.hasHitThisAttack = false;
     
-    const hitboxWidth = 60; // Slightly larger attack range
-    const hitboxHeight = 80; // Higher vertical reach
+    // Play punch sound effect
+    if (this.audioManager) {
+      this.audioManager.play('punch');
+    }
+    
+    const hitboxWidth = 120; // Slightly larger attack range
+    const hitboxHeight = 150; // Higher vertical reach
+    
+    // Adjust Attack offset because Physics width (100) is narrower than visual range
+    // We want the attack to start slightly outside the body
+    const attackOffset = 60; 
+    
     const hitboxX = this.facingRight ? 
-      this.position.x + this.width : 
-      this.position.x - hitboxWidth;
+      this.position.x + this.width + 10 : // Right side
+      this.position.x - hitboxWidth - 10; // Left side
     
     this.attackHitbox = {
       x: hitboxX,
-      y: this.position.y + 20, // Adjusted Y offset for taller character
+      y: this.position.y + 50, // Adjusted Y offset for taller character
       width: hitboxWidth,
       height: hitboxHeight
     };

@@ -1,6 +1,7 @@
 export class SwitchTimer {
-  constructor() {
-    this.currentInterval = 10; // Start at 10 seconds
+  constructor(initialInterval = 10, intervalReduction = 1) {
+    this.currentInterval = initialInterval; // Configurable start
+    this.reduceAmount = intervalReduction;  // Configurable reduction
     this.minInterval = 5; // Minimum 5 seconds
     this.timeUntilSwitch = this.currentInterval;
     this.timeUntilReduce = 30; // Reduce interval every 30 seconds
@@ -21,13 +22,14 @@ export class SwitchTimer {
       this.showingSwitchAlert = false;
     }
     
-    // Check if interval should reduce
+    // Check if interval should reduce (Every 30s)
     if (this.timeUntilReduce <= 0) {
       if (this.currentInterval > this.minInterval) {
-        this.currentInterval -= 1;
+        this.currentInterval = Math.max(this.minInterval, this.currentInterval - this.reduceAmount);
       }
       this.timeUntilReduce = 30;
     }
+
     
     // Check if switch should happen
     if (this.timeUntilSwitch <= 0) {

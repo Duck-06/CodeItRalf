@@ -12,8 +12,10 @@ export class Renderer {
     // Load Assets
     this.images = {
       background: new Image(),
-      player1: new Image(),
-      player2: new Image()
+      player1_stance: new Image(),
+      player1_kick: new Image(),
+      player2_stance: new Image(),
+      player2_kick: new Image()
     };
 
     this.loadAssets();
@@ -21,9 +23,11 @@ export class Renderer {
 
   loadAssets() {
     this.images.background.src = 'assets/background/dojo.png';
-    // Load static sprites
-    this.images.player1.src = 'assets/Player_1/kungfu.png';
-    this.images.player2.src = 'assets/Player_2/tailung.png';
+    // Load player sprites with stance and attack animations
+    this.images.player1_stance.src = 'assets/Player_1/panda_stance.png';
+    this.images.player1_kick.src = 'assets/Player_1/panda_kick.png';
+    this.images.player2_stance.src = 'assets/Player_2/tai_stance.png';
+    this.images.player2_kick.src = 'assets/Player_2/tai_kick.png';
   }
 
   clear() {
@@ -61,21 +65,31 @@ export class Renderer {
 
   drawShadow(x, y, width) {
     this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    this.ctx.translate(x + width / 2, y);
-    this.ctx.scale(1, 0.3);
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; // More subtle opacity
     this.ctx.beginPath();
-    this.ctx.arc(0, 0, width / 1.5, 0, Math.PI * 2);
+    // Draw an ellipse shadow at ground level
+    const centerX = x + width / 2;
+    const centerY = y + 5; // Slight offset from ground
+    const radiusX = width * 0.8; // Wider shadow for visual balance (width is narrow hitbox)
+    const radiusY = 10; // Slightly taller
+    this.ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.restore();
   }
 
-  drawPlayer(player, isControlled, assignedColor) {
+  drawPlayer(player, isControlled, assignedColor, playerEntity) {
     this.ctx.save();
     
-    // Identify Sprite based on assigned color (ControlSetA = Red, ControlSetB = Cyan)
-    const isPlayer1Visually = assignedColor === '#ff6b6b';
-    const sprite = isPlayer1Visually ? this.images.player1 : this.images.player2;
+    // Select sprite based on ENTITY (not color)
+    // player1 entity = panda sprites, player2 entity = tai lung sprites
+    const isPlayer1Entity = (playerEntity === 'player1');
+    
+    let sprite;
+    if (isPlayer1Entity) {
+      sprite = player.isAttacking ? this.images.player1_kick : this.images.player1_stance;
+    } else {
+      sprite = player.isAttacking ? this.images.player2_kick : this.images.player2_stance;
+    }
 
     // Position Calculations
     const x = player.position.x;
@@ -86,13 +100,11 @@ export class Renderer {
     // Draw Shadow
     this.drawShadow(x, y + h, w);
 
-    // Glow Effect
-    if (isControlled) {
-      this.ctx.shadowBlur = 20;
-      this.ctx.shadowColor = assignedColor === '#ff6b6b' ? '#ff4757' : '#2ed573';
-    }
-
-    // Sprite Rendering
+    // Colored Glow/Outline Effect based on assigned color
+    this.ctx.shadowBlur = 25;
+    this.ctx.shadowColor = assignedColor;
+    
+    // Draw the sprite multiple times with offset for outline effect
     if (sprite && sprite.complete && sprite.naturalWidth !== 0) {
         const flip = !player.facingRight;
         
@@ -102,13 +114,21 @@ export class Renderer {
         const sW = sprite.naturalWidth;
         const sH = sprite.naturalHeight;
         
-        // Target Height: 110 (hitbox) + 15 cushion
-        const targetH = 125;
+        // Target Height: Use visual height if available, otherwise hitbox height
+        // Add cushion for animation
+        const displayHeight = player.visualHeight || h;
+        const targetH = displayHeight + 15;
         const scale = targetH / sH;
         const renderW = sW * scale;
         const renderH = sH * scale;
 
-        this.ctx.drawImage(sprite, -renderW / 2, -renderH + 7, renderW, renderH); 
+        // Enhanced glow for controlled character
+        if (isControlled) {
+          this.ctx.shadowBlur = 40;
+        }
+        
+        // Draw the sprite with colored glow
+        this.ctx.drawImage(sprite, -renderW / 2, -renderH + 7, renderW, renderH);
     } else {
         // Fallback Rectangle
         if (player.hitFlashTimer > 0) {
@@ -141,13 +161,30 @@ export class Renderer {
     }
   }
 
-  drawUI(game, p1Color, p2Color) {
-    // Health Bars
-    this.drawHealthBar(game.player1, 50, 50, 'PLAYER 1', p1Color);
-    this.drawHealthBar(game.player2, this.width - 250, 50, 'PLAYER 2', p2Color);
+  drawUI(game, p1Color, p2Color, uiManager) {
+    // Get raw player names from uiManager
+    const rawP1Name = uiManager ? uiManager.player1Name : 'Player 1';
+    const rawP2Name = uiManager ? uiManager.player2Name : 'Player 2';
+    
+    // Determine which name goes to which entity based on control state
+    let nameForLeftEntity, nameForRightEntity;
+    
+    if (game.controllingPlayer1) {
+      // Normal: P1 controls Left (Red), P2 controls Right (Green)
+      nameForLeftEntity = rawP1Name;
+      nameForRightEntity = rawP2Name;
+    } else {
+      // Switched: P2 controls Left (Green), P1 controls Right (Red)
+      nameForLeftEntity = rawP2Name;
+      nameForRightEntity = rawP1Name;
+    }
+    
+    // Health Bars with assigned names
+    this.drawHealthBar(game.player1, 50, 50, nameForLeftEntity, p1Color);
+    this.drawHealthBar(game.player2, this.width - 250, 50, nameForRightEntity, p2Color);
 
-    // Timer
-    if (!game.gameOver) {
+    // Timer (only if not paused and setting is enabled)
+    if (!game.gameOver && (!uiManager || uiManager.settings.showSwitchTimer)) {
       this.drawTimer(game.switchTimer.getTimeLeft(), game.switchTimer.getCurrentInterval());
     }
 
@@ -156,8 +193,7 @@ export class Renderer {
       this.drawSwitchAlert();
     }
 
-    // Controls
-    this.drawControls();
+    // Controls removed for cleaner UI
 
     // Winner
     if (game.gameOver && game.winner) {
@@ -197,14 +233,71 @@ export class Renderer {
   }
 
   drawTimer(timeLeft, interval) {
-    this.ctx.fillStyle = '#fff';
-    this.ctx.font = 'bold 40px "Segoe UI", sans-serif';
+    const time = Math.max(0, timeLeft);
+    const centerX = this.width / 2;
+    const centerY = 50; // Moved slightly up for better composition
+    
+    // 1. Urgency Effects
+    let color = '#ffffff'; // Default White
+    let shadowColor = 'rgba(0,0,0,0.5)';
+    let scale = 1.0;
+    
+    if (time < 2) {
+      color = '#e74c3c'; // Red
+      shadowColor = 'rgba(231, 76, 60, 0.8)'; // Red Glow
+      scale = 1 + Math.sin(Date.now() / 100) * 0.05; // Quick Pulse
+    } else if (time < 3) {
+      color = '#e74c3c'; // Red
+    } else if (time < 5) {
+      color = '#f1c40f'; // Yellow
+    }
+    
+    this.ctx.save();
+    this.ctx.translate(centerX, centerY);
+    this.ctx.scale(scale, scale);
+    
+    // 2. Background Badge
+    const badgeW = 140;
+    const badgeH = 70;
+    const badgeX = -badgeW / 2;
+    const badgeY = -badgeH / 2;
+    
+    // Draw Glass Badge
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    this.ctx.beginPath();
+    this.ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 15);
+    this.ctx.fill();
+    
+    // Badge Border
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    this.ctx.stroke();
+    
+    // 3. Timer Text
+    this.ctx.fillStyle = color;
+    this.ctx.font = 'bold 46px "Segoe UI", sans-serif'; // Larger, cleaner font
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    
+    // Text Shadow
+    this.ctx.shadowColor = shadowColor;
+    this.ctx.shadowBlur = 10;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 2;
+    
+    // Draw Time
+    this.ctx.fillText(time.toFixed(1), 0, 2); // Slightly updated y-offset for visual center
+    
+    this.ctx.restore(); // Restore context to draw outside scaled area
+    
+    // 4. Subtext (Interval Info) - Now enabled and styled
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    this.ctx.font = 'bold 14px "Segoe UI", sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    this.ctx.shadowBlur = 8;
-    this.ctx.fillText(timeLeft.toFixed(1), this.width / 2, 60);
-    this.ctx.font = '16px "Segoe UI", sans-serif';
-    this.ctx.fillText(`SWITCH INTERVAL: ${interval}s`, this.width / 2, 85);
+    this.ctx.shadowBlur = 4;
+    // Draw below the badge (centerY + half badge height + padding)
+    this.ctx.fillText(`NEXT SWITCH: ${interval}s`, centerX, centerY + 55);
     this.ctx.shadowBlur = 0;
   }
 
@@ -243,35 +336,52 @@ export class Renderer {
     this.ctx.fillText('Press F5 to Restart', this.width / 2, this.height / 2 + 50);
   }
 
-  drawControls() {
-    this.ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    this.ctx.font = '14px "Segoe UI", sans-serif';
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText('P1: A/D Move, W Jump, E Attack to use Kung Fu (Red)', 20, this.height - 40);
-    this.ctx.fillText('P2: J/L Move, I Jump, O Attack to use Tai Lung (Cyan)', 20, this.height - 20);
-  }
+  // Removed drawControls() as requested for cleaner UI
 
   // Helper method to draw the scene
-  render(game) {
+  render(game, uiManager) {
     this.clear();
+    
+    // Always render UI for menu/gameover states
+    if (uiManager) {
+      if (uiManager.gameState === 'menu' || uiManager.gameState === 'gameover') {
+        uiManager.render(this.ctx, this.width, this.height);
+        return;
+      }
+    }
+    
+    // Render game (for playing and paused states)
     this.drawBackground();
 
     const controlled1 = game.controllingPlayer1 ? game.player1 : game.player2;
     const controlled2 = game.controllingPlayer1 ? game.player2 : game.player1;
 
-    // Dynamic Color Determination
-    // If P1 controls P1: P1 is Red, P2 is Cyan
-    // If P1 controls P2: P2 is Red, P1 is Cyan
-    // Therefore: The entity being controlled by Player 1 (Control Set A) is ALWAYS Red
+    // Dynamic Color Determination (Swaps on control switch)
+    // The color follows the CONTROLLER, not the entity
+    // Whoever is controlled by Player 1 (Set A) gets Red
+    // Whoever is controlled by Player 2 (Set B) gets Green
     
-    const p1Color = game.controllingPlayer1 ? '#ff6b6b' : '#4ecdc4'; // Player 1's entity color
-    const p2Color = game.controllingPlayer1 ? '#4ecdc4' : '#ff6b6b'; // Player 2's entity color
+    let p1Color, p2Color;
+    if (game.controllingPlayer1) {
+      // Normal: P1 controls entity1 (Red), P2 controls entity2 (Green)
+      p1Color = '#ff6b6b'; 
+      p2Color = '#2ecc71';
+    } else {
+      // Switched: P2 controls entity1 (Green), P1 controls entity2 (Red)
+      p1Color = '#2ecc71';
+      p2Color = '#ff6b6b';
+    } 
 
-    // Draw Players
-    this.drawPlayer(game.player1, game.player1 === controlled1 || game.player1 === controlled2, p1Color);
-    this.drawPlayer(game.player2, game.player2 === controlled1 || game.player2 === controlled2, p2Color);
+    // Draw Players with entity identifiers
+    this.drawPlayer(game.player1, game.player1 === controlled1 || game.player1 === controlled2, p1Color, 'player1');
+    this.drawPlayer(game.player2, game.player2 === controlled1 || game.player2 === controlled2, p2Color, 'player2');
 
     // Draw UI
-    this.drawUI(game, p1Color, p2Color);
+    this.drawUI(game, p1Color, p2Color, uiManager);
+    
+    // Draw Pause/Settings Menu (on top of everything)
+    if (uiManager) {
+      uiManager.render(this.ctx, this.width, this.height);
+    }
   }
 }

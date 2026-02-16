@@ -1,125 +1,79 @@
-# Anti-Gravity Switch: Dojo Chaos
+# 🥋 KungFu Chaos
 
-A 2D browser-based fighting game with a unique control-switching mechanic.
+A high-energy local multiplayer 2D fighting game with a chaotic twist!
 
-## 📁 Project Structure
+![Game Banner](assets/background/dojo.png)
 
-```
-Game/
-├── index.html              # Entry point
-├── package.json            # Dependencies
-├── src/
-│   ├── main.js            # Game loop and core logic
-│   ├── engine/
-│   │   ├── Physics.js     # Physics system
-│   │   ├── InputHandler.js # Keyboard input
-│   │   └── Renderer.js    # Canvas rendering
-│   ├── entities/
-│   │   └── Player.js      # Player entity
-│   └── systems/
-│       └── SwitchTimer.js # Control switch timing
-└── assets/                # Place your images here (optional)
-```
+## 🎮 Game Overview
 
-## 🚀 Setup Instructions
+**KungFu Chaos** is a 1v1 fighting game where you don't just battle your opponent—you battle for control! Every few seconds, the "Control Switch" mechanic swaps which character you control. One moment you're the Red Panda, the next you're the Green Tai Lung. Adapt quickly or get knocked out!
 
-### Prerequisites
+## ✨ Key Features
 
-- Node.js (v16 or higher)
+- **🔄 Control Switch Mechanic**: Players swap characters at random intervals. The timer on screen counts down to the next switch!
+- **🥊 Fast-Paced Combat**: Fluid movement, double jumps, and satisfying punch mechanics.
+- **🔊 Dynamic Audio System**:
+  - Looping background music
+  - Short, crisp sound effects (120ms punch sounds)
+  - Win music on game over
+  - Real-time volume control
+- **🎨 Premium UI**:
+  - Glass-morphism menus and HUD
+  - Urgency-based timer animations (White → Yellow → Red → Pulse)
+  - Dedicated "How to Play" screen
+- **⚙️ Customizable Settings**:
+  - Adjust **Music** and **SFX** volume
+  - Change **Initial Switch Interval** (5s - 30s)
+  - Set **Interval Reduction** (0s - 5s)
+  - Modify **Max Health** (10 - 50 HP)
 
-### Installation
+## 🕹️ Controls
 
-1. Navigate to the project directory:
+| Action         | **Player 1** (Blue/Left) | **Player 2** (Green/Right) |
+| :------------- | :----------------------: | :------------------------: |
+| **Move Left**  |           `A`            |            `J`             |
+| **Move Right** |           `D`            |            `L`             |
+| **Jump**       |           `W`            |            `I`             |
+| **Attack**     |           `E`            |            `O`             |
+| **Pause**      |          `ESC`           |           `ESC`            |
 
-```bash
-cd "d:\Git Uploads\CodeItRalf\Game"
-```
+> **PRO TIP:** When the timer hits 0, your controls swap! If you were controlling the Red character, you are now the Green character (and vice-versa). The character you control always has a colored glow matching your player color.
 
-2. Install dependencies:
+## 🚀 How to Run
 
-```bash
-npm install
-```
+1.  **Install Dependencies:**
 
-### Run Locally
+    ```bash
+    npm install
+    ```
 
-Start the development server:
+2.  **Start the Development Server:**
 
-```bash
-npm run dev
-```
+    ```bash
+    npm run dev
+    ```
 
-The game will open at `http://localhost:5173`
+3.  **Play:**
+    Open your browser and navigate to the local URL (usually `http://localhost:5173` or similar).
 
-### Build for Production
+## 🛠️ Technical Details
 
-```bash
-npm run build
-```
+Built with **Vanilla JavaScript** and **HTML5 Canvas**. No external game engines were used.
 
-The built files will be in the `dist/` folder.
+### File Structure
 
-## 🎮 Controls
+- `src/main.js` - Game entry point and loop.
+- `src/engine/` - Core engine (Renderer, Physics).
+- `src/entities/` - Game objects (Player).
+- `src/systems/` - Systems (AudioManager, UIManager).
 
-**Player 1:**
+### Recent Updates
 
-- A → Move left
-- D → Move right
-- W → Jump
-- W (while moving backward) → Dodge
-- E → Attack
-
-**Player 2:**
-
-- J → Move left
-- L → Move right
-- I → Jump
-- I (while moving backward) → Dodge
-- O → Attack
-
-## 🔄 Core Mechanic
-
-Every **10 seconds**, players switch which character they control.
-
-- The switch interval **reduces by 1 second every 30 seconds**
-- Minimum interval: **5 seconds**
-- If YOUR controlled character dies, YOU lose
-- First to eliminate the opponent's character wins
-
-## 🥊 Combat Rules
-
-- Each character has **15 HP**
-- Each hit deals **1 damage**
-- Attack has **300ms cooldown**
-- Attacks create a hitbox in front of the player
-- Hitting an opponent causes knockback
-- Health bar shakes and character flashes red when hit
-
-## 🎯 Game Features
-
-- ✅ Custom physics engine
-- ✅ Gravity and collision detection
-- ✅ Health system with visual feedback
-- ✅ Attack hitboxes with cooldown
-- ✅ Dodge mechanic
-- ✅ Dynamic control switching
-- ✅ Win/loss detection
-- ✅ Real-time UI updates
-
-## 🛠️ Tech Stack
-
-- **Vite** - Build tool
-- **Vanilla JavaScript** - Game logic
-- **HTML5 Canvas** - Rendering
-- **Custom Physics Engine** - No external dependencies
-
-## 📝 Notes
-
-- Game starts immediately (no menus)
-- Refresh page to restart after game over
-- All code is modular and easy to extend
-- Ready for hackathon presentation
+- **Audio Overhaul**: Added `AudioManager` for centralized sound control.
+- **UI Redesign**: Modernized the HUD with a "sports broadcast" style timer and removed on-screen clutter.
+- **Instructions Screen**: Added a dedicated menu to learn controls.
+- **Balance Adjustments**: Tuned movement speed and jump height for better feel.
 
 ---
 
-Made with ⚡ Vite + 🎨 Canvas
+_Created by Rudra Amit Tatuskar_
